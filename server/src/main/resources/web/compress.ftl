@@ -29,6 +29,7 @@
 
 <script type="text/javascript">
     const data = JSON.parse('${fileTree}');
+    var token = '${token}';
     var baseUrl = "${baseUrl}";
     var setting = {
         view: {
@@ -61,8 +62,11 @@
                     } else {
                         fulls += ",resizable"; // 对于不支持screen属性的浏览器，可以手工进行最大化。 manually
                     }
-                    var previewUrl = baseUrl + treeNode.fileName +"?fileKey="+ treeNode.fileKey;
-                    window.open("onlinePreview?url=" + encodeURIComponent(Base64.encode(previewUrl)), "_blank",fulls);
+                    window.open("onlinePreview?url="
+                        + encodeURIComponent("${baseUrl}" + treeNode.fileName)+"&fileKey="+ encodeURIComponent(treeNode.fileKey)+"&token="+token, "_blank",fulls);
+                    // var previewUrl = baseUrl + treeNode.fileName +"?fileKey="+ treeNode.fileKey;
+                    // window.open("onlinePreview?url=" +
+                    //     encodeURIComponent(Base64.encode(previewUrl)), "_blank",fulls);
                 }
             }
         }

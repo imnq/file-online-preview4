@@ -1,12 +1,15 @@
 package cn.keking.web.controller;
 
+import cn.keking.config.ConfigConstants;
+import cn.keking.config.FilePathConfig;
+import cn.keking.handler.GetFileException;
 import cn.keking.model.FileAttribute;
+import cn.keking.service.FileHandlerService;
 import cn.keking.service.FilePreview;
 import cn.keking.service.FilePreviewFactory;
-
 import cn.keking.service.cache.CacheService;
 import cn.keking.service.impl.OtherFilePreviewImpl;
-import cn.keking.service.FileHandlerService;
+import cn.keking.utils.FileUtils;
 import cn.keking.utils.WebUtils;
 import fr.opensagres.xdocreport.core.io.IOUtils;
 import io.mola.galimatias.GalimatiasParseException;
@@ -23,9 +26,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -45,24 +48,60 @@ public class OnlinePreviewController {
     private final FileHandlerService fileHandlerService;
     private final OtherFilePreviewImpl otherFilePreview;
 
-    public OnlinePreviewController(FilePreviewFactory filePreviewFactory, FileHandlerService fileHandlerService, CacheService cacheService, OtherFilePreviewImpl otherFilePreview) {
+    private final FilePathConfig filePathConfig;
+    private final FileUtils fileUtils;
+
+    public OnlinePreviewController(FilePreviewFactory filePreviewFactory,
+                                   FileHandlerService fileHandlerService,
+                                   CacheService cacheService,
+                                   OtherFilePreviewImpl otherFilePreview,
+                                   FileUtils fileUtils,
+                                   FilePathConfig filePathConfig) {
         this.previewFactory = filePreviewFactory;
         this.fileHandlerService = fileHandlerService;
         this.cacheService = cacheService;
         this.otherFilePreview = otherFilePreview;
+        this.fileUtils = fileUtils;
+        this.filePathConfig = filePathConfig;
     }
 
+//    @RequestMapping(value = "/onlinePreview")
+//    public String onlinePreview(String url, Model model, HttpServletRequest req) {
+//        String fileUrl;
+//        try {
+//            fileUrl = new String(Base64.decodeBase64(url), StandardCharsets.UTF_8);
+//        } catch (Exception ex) {
+//            String errorMsg = String.format(BASE64_DECODE_ERROR_MSG, "url");
+//            return otherFilePreview.notSupportedFile(model, errorMsg);
+//        }
+//        FileAttribute fileAttribute = fileHandlerService.getFileAttribute(fileUrl, req);
+//        model.addAttribute("file", fileAttribute);
+//        FilePreview filePreview = previewFactory.get(fileAttribute);
+//        logger.info("预览文件url：{}，previewType：{}", fileUrl, fileAttribute.getType());
+//        return filePreview.filePreviewHandle(fileUrl, model, fileAttribute);
+//    }
+
     @RequestMapping(value = "/onlinePreview")
-    public String onlinePreview(String url, Model model, HttpServletRequest req) {
+    public String onlinePreview(String url, String token, Model model, HttpServletRequest req) {
         String fileUrl;
-        try {
-            fileUrl = new String(Base64.decodeBase64(url), StandardCharsets.UTF_8);
-        } catch (Exception ex) {
-            String errorMsg = String.format(BASE64_DECODE_ERROR_MSG, "url");
-            return otherFilePreview.notSupportedFile(model, errorMsg);
+        String fileKey = req.getParameter("fileKey");
+        if (fileKey == null || fileKey.equals("")) {
+            try {
+                fileUrl = fileUtils.getFileDownloadUrl(url, token);
+            } catch (GetFileException e) {
+                e.printStackTrace();
+                String errorMsg = String.format(e.getMessage(), "urls");
+                model.addAttribute("msg", errorMsg);
+                return otherFilePreview.notSupportedFile(model, errorMsg);
+            }
+        } else {
+            fileUrl = url;
         }
         FileAttribute fileAttribute = fileHandlerService.getFileAttribute(fileUrl, req);
+        req.setAttribute("fileKey", req.getParameter("fileKey"));
+        model.addAttribute("officePreviewType", req.getParameter("officePreviewType"));
         model.addAttribute("file", fileAttribute);
+        model.addAttribute("token", token);
         FilePreview filePreview = previewFactory.get(fileAttribute);
         logger.info("预览文件url：{}，previewType：{}", fileUrl, fileAttribute.getType());
         return filePreview.filePreviewHandle(fileUrl, model, fileAttribute);
