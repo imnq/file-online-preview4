@@ -384,7 +384,7 @@ public class FileUtils {
                         throw new GetFileException("获取文件信息异常，检查code对应文件是否存在");
                     }
                 } else {
-                    throw new GetFileException("获取文件信息异常，ResponseCode：" + respCode);
+                    throw new GetFileException("获取文件信息异常，ResponseCode：" + respCode + ",: " + open.getURL());
                 }
             } catch (IOException e) {
                 e.printStackTrace();
